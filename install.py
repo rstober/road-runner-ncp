@@ -78,7 +78,7 @@ if __name__ == '__main__':
     
     # create the installation directory
     createDirectoryPath(install_dir)
-    createDirectoryPath(tmp_dir)
+    
     
     # always cd into install_dir
     os.chdir(install_dir)
@@ -88,6 +88,9 @@ if __name__ == '__main__':
     
     # install road-runner distribution
     os.system("git clone https://github.com/rstober/road-runner-dev.git %s" % install_dir)
+    
+    # create the tmp directory
+    createDirectoryPath(tmp_dir)
     
     # load the python3 module
     exec(open('/cm/local/apps/environment-modules/4.5.3/Modules/default/init/python.py').read())
