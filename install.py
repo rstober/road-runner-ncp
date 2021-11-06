@@ -79,7 +79,6 @@ if __name__ == '__main__':
     # create the installation directory
     createDirectoryPath(install_dir)
     
-    
     # always cd into install_dir
     os.chdir(install_dir)
     
@@ -87,7 +86,7 @@ if __name__ == '__main__':
     os.system("dnf install -y git")
     
     # install road-runner distribution
-    os.system("git clone https://github.com/rstober/road-runner-dev.git %s" % install_dir)
+    os.system("git clone https://github.com/rstober/road-runner.git %s" % install_dir)
     
     # create the tmp directory
     createDirectoryPath(tmp_dir)
