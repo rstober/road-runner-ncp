@@ -1,0 +1,6 @@
+  
+    - name: adding user {{ username }} to LDAPS
+      brightcomputing.bcm.user:
+        name: {{ username }}
+        password: {{ password }}
+        homeDirOperation: true
