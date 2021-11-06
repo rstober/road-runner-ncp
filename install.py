@@ -388,12 +388,12 @@ if __name__ == '__main__':
     printBanner('Run the playbooks')
     
     # dnf update the headnode if update_head_node config parameter is "yes"
-    if dictionary["update_head_node"]:
+    # if dictionary["update_head_node"]:
      
-        os.system('ansible-playbook -ilocalhost, dnf-update.yaml')
+        # os.system('ansible-playbook -ilocalhost, dnf-update.yaml')
         
     # run all of the playbooks
-    os.system('ansible-playbook -ilocalhost, site.yaml')
+    # os.system('ansible-playbook -ilocalhost, site.yaml')
     
     printBanner('Done')
     
