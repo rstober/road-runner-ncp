@@ -88,6 +88,12 @@ if __name__ == '__main__':
     # install road-runner distribution
     os.system("git clone https://github.com/rstober/road-runner.git %s" % install_dir)
     
+    # download the AWS CLI
+    os.system("curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"")
+    shutil.unpack_archive('awscliv2.zip', install_dir, 'zip')
+    os.chmod("aws/install", stat.S_IEXEC)
+    os.chmod("aws/dist/aws", stat.S_IEXEC)
+    
     # create the tmp directory
     createDirectoryPath(tmp_dir)
     
@@ -347,13 +353,6 @@ if __name__ == '__main__':
     if "jupyter" in dictionary:
     
         shutil.copyfile("default-ansible-vars", install_dir + "/roles/jupyter/vars/main.yaml")
-    
-        # download and install the AWS CLI
-        os.system("curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"")
-        shutil.unpack_archive('awscliv2.zip', install_dir, 'zip')
-        os.chmod("aws/install", stat.S_IEXEC)
-        os.chmod("aws/dist/aws", stat.S_IEXEC)
-        os.system("./aws/install")
         
         # write the playbook that installs Jupyter and opens port 8000 in the director security group
         os.system('ansible-playbook -ilocalhost, install-jupyter-pb.yaml')
