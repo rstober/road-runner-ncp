@@ -99,9 +99,9 @@ if __name__ == '__main__':
     
     # load the python3 module
     exec(open('/cm/local/apps/environment-modules/4.5.3/Modules/default/init/python.py').read())
+    os.environ['MODULEPATH'] = '/cm/local/modulefiles:/cm/shared/modulefiles'
     module('load','python3')
     
-    # read in client configuration
     stream = open('install_config.yaml', 'r')
     dictionary = yaml.safe_load(stream)
     
