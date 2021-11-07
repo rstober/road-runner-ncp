@@ -1,0 +1,14 @@
+---
+- hosts: all
+  roles:
+    - software_images
+    - categories
+    - nodes
+    - packages
+    - kubernetes
+    - wlms
+    - autoscaler
+    - csps
+    - jupyter
+    - users
+    - apps

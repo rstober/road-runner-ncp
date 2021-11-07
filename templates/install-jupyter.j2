@@ -3,7 +3,7 @@
       ansible.builtin.shell: cm-jupyter-setup -c {{ ansible_local['custom']['install_dir'] }}/cm-jupyter-setup.conf
       args:
         executable: /bin/bash
-	
+        
     - name: install the AWS CLI
       ansible.builtin.shell: ./aws/install
       args:
