@@ -5,7 +5,7 @@
         executable: /bin/bash
         
     - name: install the AWS CLI
-      ansible.builtin.shell: ./aws/install
+      ansible.builtin.shell: {{ ansible_local['custom']['install_dir'] }}/aws/install
       args:
         executable: /bin/bash
     
