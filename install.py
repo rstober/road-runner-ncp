@@ -125,18 +125,19 @@ if __name__ == '__main__':
     os.system("ansible-galaxy collection install brightcomputing.bcm")
    
     # copy the CMSH aliases, bookmarks and scriptlets to their proper locations
-    shutil.copyfile("cmshrc", "/root/.cmshrc")
-    shutil.copyfile("bookmarks-cmsh", "/root/.bookmarks-cmsh")
-    shutil.copyfile("du.cmsh", "/root/.cm/cmsh/du.cmsh")
-    shutil.copyfile("cu.cmsh", "/root/.cm/cmsh/cu.cmsh")
-    shutil.copyfile("si.cmsh", "/root/.cm/cmsh/si.cmsh")
-    shutil.copyfile("dp.cmsh", "/root/.cm/cmsh/dp.cmsh")
-    shutil.copyfile("ansible.cfg", "/root/.ansible.cfg")
+    createDirectoryPath('/root/.cm/cmsh')
+    shutil.copyfile('cmshrc', '/root/.cmshrc')
+    shutil.copyfile('bookmarks-cmsh', '/root/.bookmarks-cmsh')
+    shutil.copyfile('du.cmsh', '/root/.cm/cmsh')
+    shutil.copyfile('cu.cmsh', '/root/.cm/cmsh')
+    shutil.copyfile('si.cmsh', '/root/.cm/cmsh')
+    shutil.copyfile('dp.cmsh', '/root/.cm/cmsh')
+    #shutil.copyfile('ansible.cfg', '/root/.ansible.cfg')
     
     printBanner('Preparing playbooks')
         
     if "software_images" in dictionary:
-    
+
         index=0
         
         kernel_release = subprocess.run(['uname', '-r'], stdout=subprocess.PIPE).stdout.decode('utf-8')
