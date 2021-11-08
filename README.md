@@ -5,8 +5,8 @@ Road Runner is a high-level, user-friendly application that allows Bright CaaS c
 Road Runner was created to automate the process of creating fully-functional Bright Cluster Manager demo clusters. This cluster is suitable to demonstrate all of Bright's most important features.
 
 * Slurm with the partitions: defq, gpu, jup
-* Kubernetes
-* Jupyter
+* Kubernetes (in a default configuration)
+* Jupyter (in a default configuration)
 * Autoscaler with one resource provider with both slurm and k8s workload engines configured
 * Bright for Data Science packages installed on the head node
 * cuda-driver, cuda-dcgm and Gnome desktop are installed in the compute node software image (cloned-image)
@@ -27,7 +27,7 @@ Log into krusty2 using your standard user account.
 Use the cm-cod-aws command to create a cluster as you normally would, but add this --postbs command:
 ```
 
---postbs 'python3 -c "$(curl -fsSL https://raw.githubusercontent.com/rstober/road-runner-dev/main/install-dev.py)"' 
+--postbs 'python3 -c "$(curl -fsSL https://raw.githubusercontent.com/rstober/road-runner/main/install.py)"' 
 
 ```
 * Note the IP address as you will need it to connect to Bright View and Jupyter
