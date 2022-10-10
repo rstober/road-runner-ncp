@@ -11,10 +11,21 @@ import subprocess
 import string
 import secrets
 import datetime
+import logging
 
 install_dir = "/root/.road-runner"
 tmp_dir = install_dir + '/tmp'
 begin_time = datetime.datetime.now()
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+file_handler = logging.FileHandler('/var/log/road-runner.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
 
 # concatenate temporary files in dirName to fileName then return fileName
 def concatenateFiles(dirName, createFile):
