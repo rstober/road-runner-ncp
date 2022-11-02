@@ -12,6 +12,8 @@ import string
 import secrets
 import datetime
 import logging
+import sys
+import pprint
 
 install_dir = "/root/.road-runner"
 tmp_dir = install_dir + '/tmp'
@@ -94,16 +96,18 @@ if __name__ == '__main__':
     os.chdir(install_dir)
     
     # install git
-    os.system("dnf install -y git")
+    #os.system("dnf install -y git")
+    os.system("apt update")
+    os.system("apt install -y git")
     
     # install road-runner distribution
-    os.system("git clone https://github.com/rstober/road-runner.git %s" % install_dir)
+    os.system("git clone https://github.com/rstober/road-runner-dev.git %s" % install_dir)
     
     # download the AWS CLI
-    os.system("curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"")
-    shutil.unpack_archive('awscliv2.zip', install_dir, 'zip')
-    os.chmod("aws/install", stat.S_IEXEC)
-    os.chmod("aws/dist/aws", stat.S_IEXEC)
+    # os.system("curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"")
+    # shutil.unpack_archive('awscliv2.zip', install_dir, 'zip')
+    # os.chmod("aws/install", stat.S_IEXEC)
+    # os.chmod("aws/dist/aws", stat.S_IEXEC)
     
     # create the tmp directory
     createDirectoryPath(tmp_dir)
@@ -112,9 +116,16 @@ if __name__ == '__main__':
     exec(open('/cm/local/apps/environment-modules/4.5.3/Modules/default/init/python.py').read())
     os.environ['MODULEPATH'] = '/cm/local/modulefiles:/cm/shared/modulefiles'
     module('load','python3')
+    module('load','cmsh')
     
     stream = open('install_config.yaml', 'r')
     dictionary = yaml.safe_load(stream)
+    
+    #pp = pprint.PrettyPrinter(indent=4)
+    #for key in dictionary:
+    #pp.pprint(dictionary)
+        
+    #sys.exit("Exiting")
     
     # create the ansible facts.d directory
     createDirectoryPath('/etc/ansible/facts.d')
@@ -124,7 +135,7 @@ if __name__ == '__main__':
         json.dump(dictionary, write_file, indent=2)
     
     # create an ansible roles directory for each role
-    roles = list(("software_images", "categories", "kubernetes", "nodes", "packages", "csps", "users", "wlms", "autoscaler", "jupyter", "apps"))
+    roles = list(("apt_upgrade_node", "software_images", "categories", "kubernetes", "nodes", "packages", "csps", "users", "wlms", "autoscaler", "jupyter", "apps"))
     for role in roles:
         createDirectoryPath('roles/' + role + '/tasks')
         createDirectoryPath('roles/' + role + '/vars')
@@ -132,8 +143,8 @@ if __name__ == '__main__':
     # install ansible base
     os.system('pip install ansible==' + dictionary["ansible_version"])
     
-    # install the brightcomputing.bcm Ansible collection
-    os.system("ansible-galaxy collection install brightcomputing.bcm")
+    # install the brightcomputing.bcm92 Ansible collection
+    os.system("ansible-galaxy collection install brightcomputing.bcm92")
    
     # copy the CMSH aliases, bookmarks and scriptlets to their proper locations
     createDirectoryPath('/root/.cm/cmsh')
@@ -143,7 +154,8 @@ if __name__ == '__main__':
     shutil.copyfile('cu.cmsh', '/root/.cm/cmsh/cu.cmsh')
     shutil.copyfile('si.cmsh', '/root/.cm/cmsh/si.cmsh')
     shutil.copyfile('dp.cmsh', '/root/.cm/cmsh/dp.cmsh')
-    #shutil.copyfile('ansible.cfg', '/root/.ansible.cfg')
+    shutil.copyfile('hosts', '/etc/ansible/hosts')
+    shutil.copyfile('ansible.cfg', '/root/.ansible.cfg')
     
     printBanner('Preparing playbooks')
         
@@ -151,23 +163,43 @@ if __name__ == '__main__':
 
         index=0
         
-        kernel_release = subprocess.run(['uname', '-r'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        
         shutil.copyfile("bright-ansible-vars", install_dir + "/roles/software_images/vars/main.yaml")
+        shutil.copyfile("default-ansible-vars", install_dir + "/roles/apt_upgrade_node/vars/main.yaml")
     
         for image in dictionary["software_images"]:
-            
-            initrd_file = '/cm/images/' + image["name"] + '/boot/initrd-' + kernel_release
+
+            initrd_file = '/cm/images/' + image["name"] + '/boot/initrd-' + image["kernel_release"]
             index+=1
             
-            if os.path.exists(initrd_file.strip()):
+            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} clone_from={clone_from} image_path={image_path} kernel_release={kernel_release}" create-software-image-pb.yaml'.format(index=index, image_name=image["name"], clone_from=image["clone_from"], image_path=image["path"], kernel_release=image["kernel_release"]))
+            
+            skip adding kernel modules if there are none to add
+            if image["modules"] is None:
+                continue
+            
+            for module in image["modules"]:
+            
+                print(module)
+                cmsh = 'module load cmsh -c "softwareimage use ' + image["clone_from"] + '; kernelmodules; append ' + module["name"]'
+                print(cmsh)
+                #result = subprocess.run([module load cmsh -c "softwareimage; use image["clone_from"]; kernelmodules; append module["name"]], stdout=subprocess.PIPE).stdout.decode('utf-8')
                 
-                os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} clone_from={clone_from} image_path={image_path} kernel_release={kernel_release}" create-software-image-exists-pb.yaml'.format(index=index, image_name=image["name"], clone_from=image["clone_from"], image_path=image["path"], kernel_release=kernel_release))
-            else:
-               
-                os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} clone_from={clone_from} image_path={image_path} kernel_release={kernel_release}" create-software-image-pb.yaml'.format(index=index, image_name=image["name"], clone_from=image["clone_from"], image_path=image["path"], kernel_release=kernel_release))
+                
+                # index+=1
+            
+                # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} module_name={module_name}" configure-software-image-pb.yaml'.format(index=index, image_name=image["name"], module_name=module))
+                
+        index+=1
+        os.system('ansible-playbook -ilocalhost, --extra-vars "index={index}" grabimage-pb.yaml'.format(index=index))
             
         concatenateFiles(dictionary["tmp_dir"], 'roles/software_images/tasks/main.yaml')
+        cleanTmpDir(dictionary["tmp_dir"])
+        
+        index=1
+        
+        os.system('ansible-playbook -ilocalhost, --extra-vars "index={index}" update-software-image-pb.yaml'.format(index=index))
+        
+        concatenateFiles(dictionary["tmp_dir"], 'roles/apt_upgrade_node/tasks/main.yaml')
         cleanTmpDir(dictionary["tmp_dir"])
         
     if "categories" in dictionary:
@@ -195,221 +227,216 @@ if __name__ == '__main__':
         
             index+=1
             
-            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} category={category} hostname={hostname} power_control={power_control}" configure-nodes-pb.yaml'.format(index=index, category=node["category"], hostname=node["hostname"], power_control=node["power_control"]))
+            # clone node01 to create the nodes listed in the install_config.yaml file
+            
+            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} node_name={node_name} clone_from={clone_from} node_category={node_category}" create-node-pb.yaml'.format(index=index, node_name=node["hostname"], clone_from=node["clone_from"], node_category=node["category"]))
+            
+            for nic in node["nics"]:
+            
+                index+=1
+                
+                os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} node_name={node_name} device_name={device_name} ip_number={ip_number} network={network}" configure-node-nic-pb.yaml'.format(index=index, node_name=node["hostname"], device_name=nic["device"], ip_number=nic["ip"], network=nic["network"]))
             
         concatenateFiles(dictionary["tmp_dir"], 'roles/nodes/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        #cleanTmpDir(dictionary["tmp_dir"])
             
-    if "packages" in dictionary:
+    # if "packages" in dictionary:
     
-        index=0
+        # index=0
         
-        shutil.copyfile("default-ansible-vars", install_dir + "/roles/packages/vars/main.yaml")
+        # shutil.copyfile("default-ansible-vars", install_dir + "/roles/packages/vars/main.yaml")
     
-        for package in dictionary["packages"]:
+        # for package in dictionary["packages"]:
         
-            index +=1
+            # index +=1
             
-            if package["target"] == "headnode":
+            # if package["target"] == "headnode":
             
-                os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} package_name={package_name}" headnode-install-package-pb.yaml'.format(index=index, package_name=package["package_name"]))
+                # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} package_name={package_name}" headnode-install-package-pb.yaml'.format(index=index, package_name=package["package_name"]))
                 
-            else:
-                os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} package_name={package_name} target={target}" node-install-package-pb.yaml'.format(index=index, package_name=package["package_name"], target=package["target"]))
+            # else:
+                # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} package_name={package_name} target={target}" node-install-package-pb.yaml'.format(index=index, package_name=package["package_name"], target=package["target"]))
                 
-                if package["package_name"] == "cuda-driver":
+                # if package["package_name"] == "cuda-driver":
                 
-                    index+=1
+                    # index+=1
                     
-                    os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} target={target}" patch-cuda-driver-service-file-pb.yaml'.format(index=index, target=package["target"]))
+                    # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} target={target}" patch-cuda-driver-service-file-pb.yaml'.format(index=index, target=package["target"]))
                     
-        concatenateFiles(dictionary["tmp_dir"], 'roles/packages/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/packages/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
         
-    if "kubernetes" in dictionary:
+    # if "kubernetes" in dictionary:
     
-        index=0
+        # index=0
         
-        shutil.copyfile("bright-ansible-vars", install_dir + "/roles/kubernetes/vars/main.yaml")
+        # shutil.copyfile("bright-ansible-vars", install_dir + "/roles/kubernetes/vars/main.yaml")
     
-        for instance in dictionary["kubernetes"]:
+        # for instance in dictionary["kubernetes"]:
         
-            index+=1
+            # index+=1
         
-            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} instance_name={instance_name} categories={categories}" install-k8s-pb.yaml'.format(index=index, instance_name=instance["name"], categories=instance["categories"]))
+            # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} instance_name={instance_name} categories={categories}" install-k8s-pb.yaml'.format(index=index, instance_name=instance["name"], categories=instance["categories"]))
         
-        concatenateFiles(dictionary["tmp_dir"], 'roles/kubernetes/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/kubernetes/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
                     
-    if "wlms" in dictionary:
+    # if "wlms" in dictionary:
     
-        shutil.copyfile("bright-ansible-vars", install_dir + "/roles/wlms/vars/main.yaml")
+        # shutil.copyfile("bright-ansible-vars", install_dir + "/roles/wlms/vars/main.yaml")
     
-        for wlm in dictionary["wlms"]:
+        # for wlm in dictionary["wlms"]:
         
-            if wlm["name"] == "slurm":
+            # if wlm["name"] == "slurm":
             
-                index=0
+                # index=0
             
-                if wlm["constrain_devices"]:
+                # if wlm["constrain_devices"]:
                 
-                    os.system('ansible-playbook -ilocalhost, --extra-vars "wlm_name={wlm_name} index={index}" configure-wlm-pb.yaml'.format(wlm_name=wlm["name"], index=index))
+                    # os.system('ansible-playbook -ilocalhost, --extra-vars "wlm_name={wlm_name} index={index}" configure-wlm-pb.yaml'.format(wlm_name=wlm["name"], index=index))
             
-                for queue in wlm["queues"]:
+                # for queue in wlm["queues"]:
             
-                    index+=1
+                    # index+=1
                 
-                    os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} queue_name={queue_name} clone_from={clone_from} default_queue={default_queue} over_subscribe={over_subscribe} wlm_cluster={wlm_cluster}" clone-slurm-queue-pb.yaml'.format(index=index, queue_name=queue["queue_name"], clone_from=queue["clone_from"], default_queue=queue["default_queue"], over_subscribe=queue["over_subscribe"], wlm_cluster=queue["wlm_cluster"]))
+                    # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} queue_name={queue_name} clone_from={clone_from} default_queue={default_queue} over_subscribe={over_subscribe} wlm_cluster={wlm_cluster}" clone-slurm-queue-pb.yaml'.format(index=index, queue_name=queue["queue_name"], clone_from=queue["clone_from"], default_queue=queue["default_queue"], over_subscribe=queue["over_subscribe"], wlm_cluster=queue["wlm_cluster"]))
             
-                for overlay in wlm["configuration_overlays"]:
+                # for overlay in wlm["configuration_overlays"]:
             
-                    index+=1
+                    # index+=1
                 
-                    os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} categories={categories} all_head_nodes={all_head_nodes}" create-configuration-overlay-pb.yaml'.format(index=index, overlay_name=overlay["name"], categories=overlay["categories"], all_head_nodes=overlay["allHeadNodes"]))
+                    # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} categories={categories} all_head_nodes={all_head_nodes}" create-configuration-overlay-pb.yaml'.format(index=index, overlay_name=overlay["name"], categories=overlay["categories"], all_head_nodes=overlay["allHeadNodes"]))
                 
-                    for role in overlay["roles"]:
+                    # for role in overlay["roles"]:
                 
-                        index+=1
+                        # index+=1
                     
-                        os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} role_name={role_name} wlm_cluster={wlm_cluster} queues={queues} sockets_per_board={sockets_per_board} cores_per_socket={cores_per_socket} threads_per_core={threads_per_core} slots={slots} real_memory={real_memory}" add-role-to-slurm-client-overlay-pb.yaml'.format(index=index, overlay_name=overlay["name"], role_name=role["name"], wlm_cluster=role["wlm_cluster"], queues=role["queues"], sockets_per_board=role["sockets_per_board"], cores_per_socket=role["cores_per_socket"], threads_per_core=role["threads_per_core"], slots=role["slots"], real_memory=role["real_memory"]))
+                        # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} role_name={role_name} wlm_cluster={wlm_cluster} queues={queues} sockets_per_board={sockets_per_board} cores_per_socket={cores_per_socket} threads_per_core={threads_per_core} slots={slots} real_memory={real_memory}" add-role-to-slurm-client-overlay-pb.yaml'.format(index=index, overlay_name=overlay["name"], role_name=role["name"], wlm_cluster=role["wlm_cluster"], queues=role["queues"], sockets_per_board=role["sockets_per_board"], cores_per_socket=role["cores_per_socket"], threads_per_core=role["threads_per_core"], slots=role["slots"], real_memory=role["real_memory"]))
                     
-                        for resource in role["generic_resources"]:
+                        # for resource in role["generic_resources"]:
                     
-                            index+=1
+                            # index+=1
                     
-                            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} role_name={role_name} resource_name={resource_name} alias={alias} file={file} res_type={res_type} count={count} consumable={consumable} add_to_gres_config={add_to_gres_config}" add-resource-pb.yaml'.format(index=index, overlay_name=overlay["name"], role_name=role["name"], resource_name=resource["name"], alias=resource["alias"], file=resource["file"], res_type=resource["type"], count=resource["count"], consumable=resource["consumable"], add_to_gres_config=resource["add_to_gres_config"]))
-            else:                
-                print("Error: unsupported workload management system")
-                exit()
+                            # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} role_name={role_name} resource_name={resource_name} alias={alias} file={file} res_type={res_type} count={count} consumable={consumable} add_to_gres_config={add_to_gres_config}" add-resource-pb.yaml'.format(index=index, overlay_name=overlay["name"], role_name=role["name"], resource_name=resource["name"], alias=resource["alias"], file=resource["file"], res_type=resource["type"], count=resource["count"], consumable=resource["consumable"], add_to_gres_config=resource["add_to_gres_config"]))
+            # else:                
+                # print("Error: unsupported workload management system")
+                # exit()
                         
-        concatenateFiles(dictionary["tmp_dir"], 'roles/wlms/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/wlms/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
                         
-    if "autoscaler" in dictionary:
+    # if "autoscaler" in dictionary:
     
-        index=0
-        shutil.copyfile("bright-ansible-vars", install_dir + "/roles/autoscaler/vars/main.yaml")
+        # index=0
+        # shutil.copyfile("bright-ansible-vars", install_dir + "/roles/autoscaler/vars/main.yaml")
         
-        os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} categories={categories} all_head_nodes={all_head_nodes}" create-add-overlay-pb.yaml'.format(index=index, overlay_name=dictionary["autoscaler"]["name"], categories=dictionary["autoscaler"]["categories"], all_head_nodes=dictionary["autoscaler"]["allHeadNodes"]))
+        # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} overlay_name={overlay_name} categories={categories} all_head_nodes={all_head_nodes}" create-add-overlay-pb.yaml'.format(index=index, overlay_name=dictionary["autoscaler"]["name"], categories=dictionary["autoscaler"]["categories"], all_head_nodes=dictionary["autoscaler"]["allHeadNodes"]))
         
-        for role in dictionary["autoscaler"]["roles"]:
+        # for role in dictionary["autoscaler"]["roles"]:
         
-            index+=1
+            # index+=1
             
-            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} role_name={role_name} runInterval={runInterval} debug={debug}" create-add-role-to-auto-scaler-overlay-pb.yaml'.format(index=index, role_name=role["name"], runInterval=role["runInterval"], debug=role["debug"]))
+            # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} role_name={role_name} runInterval={runInterval} debug={debug}" create-add-role-to-auto-scaler-overlay-pb.yaml'.format(index=index, role_name=role["name"], runInterval=role["runInterval"], debug=role["debug"]))
             
-            for provider in role["resource_providers"]:
+            # for provider in role["resource_providers"]:
             
-                index+=1
+                # index+=1
             
-                os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} provider_name={provider_name} templateNode={templateNode} startTemplateNode={startTemplateNode} stopTemplateNode={stopTemplateNode} nodeRange={nodeRange} networkInterface={networkInterface} defaultResources={defaultResources}" add-dynamic-resource-provider-pb.yaml'.format(install_dir=dictionary["install_dir"], index=index, provider_name=provider["provider_name"], templateNode=provider["templateNode"], startTemplateNode=provider["startTemplateNode"], stopTemplateNode=provider["stopTemplateNode"], nodeRange=provider["nodeRange"], networkInterface=provider["networkInterface"], defaultResources=provider["defaultResources"]))
+                # os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} provider_name={provider_name} templateNode={templateNode} startTemplateNode={startTemplateNode} stopTemplateNode={stopTemplateNode} nodeRange={nodeRange} networkInterface={networkInterface} defaultResources={defaultResources}" add-dynamic-resource-provider-pb.yaml'.format(install_dir=dictionary["install_dir"], index=index, provider_name=provider["provider_name"], templateNode=provider["templateNode"], startTemplateNode=provider["startTemplateNode"], stopTemplateNode=provider["stopTemplateNode"], nodeRange=provider["nodeRange"], networkInterface=provider["networkInterface"], defaultResources=provider["defaultResources"]))
                 
-            for engine in role["engines"]:
+            # for engine in role["engines"]:
             
-                index+=1
+                # index+=1
                
-                if engine["type"] == "ScaleHpcEngine":
+                # if engine["type"] == "ScaleHpcEngine":
                
-                    os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} engine_name={engine_name} workloads_per_node={workloads_per_node} priority={priority} wlm_cluster={wlm_cluster}" add-ScaleHpcEngine-pb.yaml'.format(install_dir=dictionary["install_dir"], index=index, engine_name=engine["name"], workloads_per_node=engine["workloadsPerNode"], priority=engine["priority"], wlm_cluster=engine["wlmCluster"]))
+                    # os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} engine_name={engine_name} workloads_per_node={workloads_per_node} priority={priority} wlm_cluster={wlm_cluster}" add-ScaleHpcEngine-pb.yaml'.format(install_dir=dictionary["install_dir"], index=index, engine_name=engine["name"], workloads_per_node=engine["workloadsPerNode"], priority=engine["priority"], wlm_cluster=engine["wlmCluster"]))
                
-                elif engine["type"] == "ScaleKubeEngine":
+                # elif engine["type"] == "ScaleKubeEngine":
                
-                    os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} engine_name={engine_name} workloads_per_node={workloads_per_node} priority={priority} cluster={cluster}" add-ScaleKubeEngine-pb.yaml'.format(install_dir=dictionary["install_dir"], index=index, engine_name=engine["name"], workloads_per_node=engine["workloadsPerNode"], priority=engine["priority"], cluster=engine["cluster"]))
+                    # os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} engine_name={engine_name} workloads_per_node={workloads_per_node} priority={priority} cluster={cluster}" add-ScaleKubeEngine-pb.yaml'.format(install_dir=dictionary["install_dir"], index=index, engine_name=engine["name"], workloads_per_node=engine["workloadsPerNode"], priority=engine["priority"], cluster=engine["cluster"]))
                    
-                else:
+                # else:
                 
-                    print("Error: unsupported engine type")
-                    exit()
+                    # print("Error: unsupported engine type")
+                    # exit()
                
-                for tracker in engine["trackers"]:
+                # for tracker in engine["trackers"]:
                
-                    index+=1
+                    # index+=1
                     
-                    if tracker["type"] == "ScaleHpcQueueTracker":
+                    # if tracker["type"] == "ScaleHpcQueueTracker":
                    
-                        os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} tracker_name={tracker_name} queue={queue} assign_category={assign_category} allowed_resource_providers={allowed_resource_providers} workloads_per_node={workloads_per_node}" add-ScaleHpcQueueTracker.yaml'.format(install_dir=dictionary["install_dir"], index=index, tracker_name=tracker["name"], queue=tracker["queue"], assign_category=tracker["assignCategory"], allowed_resource_providers=tracker["allowedResourceProviders"], workloads_per_node=tracker["workloadsPerNode"])) 
+                        # os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} tracker_name={tracker_name} queue={queue} assign_category={assign_category} allowed_resource_providers={allowed_resource_providers} workloads_per_node={workloads_per_node}" add-ScaleHpcQueueTracker.yaml'.format(install_dir=dictionary["install_dir"], index=index, tracker_name=tracker["name"], queue=tracker["queue"], assign_category=tracker["assignCategory"], allowed_resource_providers=tracker["allowedResourceProviders"], workloads_per_node=tracker["workloadsPerNode"])) 
                     
-                    elif tracker["type"] == "ScaleKubeNamespaceTracker":   
+                    # elif tracker["type"] == "ScaleKubeNamespaceTracker":   
 
-                        os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} tracker_name={tracker_name} controllerNamespace={controllerNamespace} assign_category={assign_category} allowed_resource_providers={allowed_resource_providers} workloads_per_node={workloads_per_node}" add-ScaleKubeNamespaceTracker.yaml'.format(install_dir=dictionary["install_dir"], index=index, tracker_name=tracker["name"], controllerNamespace=tracker["controllerNamespace"], assign_category=tracker["assignCategory"], allowed_resource_providers=tracker["allowedResourceProviders"], workloads_per_node=tracker["workloadsPerNode"]))
+                        # os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} tracker_name={tracker_name} controllerNamespace={controllerNamespace} assign_category={assign_category} allowed_resource_providers={allowed_resource_providers} workloads_per_node={workloads_per_node}" add-ScaleKubeNamespaceTracker.yaml'.format(install_dir=dictionary["install_dir"], index=index, tracker_name=tracker["name"], controllerNamespace=tracker["controllerNamespace"], assign_category=tracker["assignCategory"], allowed_resource_providers=tracker["allowedResourceProviders"], workloads_per_node=tracker["workloadsPerNode"]))
 
-                    else:
+                    # else:
                 
-                        print("Error: unsupported tracker type")
-                        exit()                        
+                        # print("Error: unsupported tracker type")
+                        # exit()                        
    
-        concatenateFiles(dictionary["tmp_dir"], 'roles/autoscaler/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/autoscaler/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
         
-    if "csps" in dictionary:
+    # if "csps" in dictionary:
         
-        index=0
-        shutil.copyfile("bright-ansible-vars", install_dir + "/roles/csps/vars/main.yaml")
+        # index=0
+        # shutil.copyfile("bright-ansible-vars", install_dir + "/roles/csps/vars/main.yaml")
     
-        for csp in dictionary["csps"]:
+        # for csp in dictionary["csps"]:
             
-            if csp["type"] == "aws":
+            # if csp["type"] == "aws":
             
-                os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} provider_name={provider_name} useMarketplaceAMIs={useMarketplaceAMIs}" config-ec2-csp.yaml'.format(install_dir=dictionary["install_dir"], index=index, provider_name=csp["name"], useMarketplaceAMIs=csp["useMarketplaceAMIs"]))
+                # os.system('ansible-playbook -ilocalhost, --extra-vars "install_dir={install_dir} index={index} provider_name={provider_name} useMarketplaceAMIs={useMarketplaceAMIs}" config-ec2-csp.yaml'.format(install_dir=dictionary["install_dir"], index=index, provider_name=csp["name"], useMarketplaceAMIs=csp["useMarketplaceAMIs"]))
             
-            else:
+            # else:
             
-                print("Error: Unsupported cloud service provider type")
-                exit()
+                # print("Error: Unsupported cloud service provider type")
+                # exit()
                 
-            index+=1
+            # index+=1
                 
-        concatenateFiles(dictionary["tmp_dir"], 'roles/csps/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/csps/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
         
-    if "jupyter" in dictionary:
+    # if "jupyter" in dictionary:
     
-        shutil.copyfile("default-ansible-vars", install_dir + "/roles/jupyter/vars/main.yaml")
+        # shutil.copyfile("default-ansible-vars", install_dir + "/roles/jupyter/vars/main.yaml")
         
-        # write the playbook that installs Jupyter and opens port 8000 in the director security group
-        os.system('ansible-playbook -ilocalhost, install-jupyter-pb.yaml')
+        # # write the playbook that installs Jupyter and opens port 8000 in the director security group
+        # os.system('ansible-playbook -ilocalhost, install-jupyter-pb.yaml')
         
-    if "users" in dictionary:
+    # if "users" in dictionary:
     
-        index=0
-        shutil.copyfile("bright-ansible-vars", install_dir + "/roles/users/vars/main.yaml")
-        password=generatePassword(20)
+        # index=0
+        # shutil.copyfile("bright-ansible-vars", install_dir + "/roles/users/vars/main.yaml")
+        # password=generatePassword(20)
         
-        os.system('ansible-playbook -ilocalhost, --extra-vars "password={password}" add-user-password-pb.yaml'.format(password=password))
+        # os.system('ansible-playbook -ilocalhost, --extra-vars "password={password}" add-user-password-pb.yaml'.format(password=password))
         
-        for user in dictionary["users"]:
+        # for user in dictionary["users"]:
             
-            index+=1
+            # index+=1
            
-            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} username={username} password={password}" add-user-pb.yaml'.format(index=index, username=user, password=password))
+            # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} username={username} password={password}" add-user-pb.yaml'.format(index=index, username=user, password=password))
             
-        concatenateFiles(dictionary["tmp_dir"], 'roles/users/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/users/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
         
-    if "apps" in dictionary:
+    # if "apps" in dictionary:
     
-        shutil.copyfile("default-ansible-vars", install_dir + "/roles/apps/vars/main.yaml")
+        # shutil.copyfile("default-ansible-vars", install_dir + "/roles/apps/vars/main.yaml")
         
-        os.system('ansible-playbook -ilocalhost, install-apps-pb.yaml')
+        # os.system('ansible-playbook -ilocalhost, install-apps-pb.yaml')
     
-    # the dnf update playbook is always created
-    if "update_head_node" in dictionary: 
-        
-            os.environ['ANSIBLE_PYTHON_INTERPRETER'] = '/usr/bin/python'
-            os.system('ansible-playbook -ilocalhost, dnf-update-pb.yaml')
-        
     printBanner('Run the playbooks')
     
-    # dnf update the headnode if update_head_node config parameter is "yes"
-    if dictionary["update_head_node"]:
-     
-        os.system('ansible-playbook -ilocalhost, dnf-update.yaml')
-        
-    # run all of the playbooks
-    os.system('ansible-playbook -ilocalhost, site.yaml')
+    #os.system('ansible-playbook site.yaml')
     
     printBanner('Done')
     
     print("Script time: %s" % (datetime.datetime.now() - begin_time))
                 
-        
