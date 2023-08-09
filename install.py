@@ -96,9 +96,9 @@ if __name__ == '__main__':
     os.chdir(install_dir)
     
     # install git
-    #os.system("dnf install -y git")
-    os.system("apt update")
-    os.system("apt install -y git")
+    os.system("dnf install -y git")
+    #os.system("apt update")
+    #os.system("apt install -y git")
     
     # install road-runner distribution
     os.system("git clone https://github.com/rstober/road-runner-dev.git %s" % install_dir)
@@ -121,9 +121,9 @@ if __name__ == '__main__':
     stream = open('install_config.yaml', 'r')
     dictionary = yaml.safe_load(stream)
     
-    #pp = pprint.PrettyPrinter(indent=4)
-    #for key in dictionary:
-    #pp.pprint(dictionary)
+    pp = pprint.PrettyPrinter(indent=4)
+    for key in dictionary:
+        pp.pprint(dictionary)
         
     #sys.exit("Exiting")
     
