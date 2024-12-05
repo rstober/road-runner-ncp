@@ -85,9 +85,9 @@ def printBanner(text):
 if __name__ == '__main__':
 
     # # delete the installation directory if it exists
-    # isExist = os.path.exists(install_dir)
-    # if isExist:
-        # shutil.rmtree(install_dir)
+    isExist = os.path.exists(install_dir)
+    if isExist:
+        shutil.rmtree(install_dir)
     
     # create the installation directory
     createDirectoryPath(install_dir)
@@ -96,7 +96,6 @@ if __name__ == '__main__':
     os.chdir(install_dir)
     
     # install git
-    #os.system("dnf install -y git")
     os.system("apt update")
     os.system("apt install -y git")
     
@@ -115,9 +114,9 @@ if __name__ == '__main__':
     stream = open('install_config.yaml', 'r')
     dictionary = yaml.safe_load(stream)
     
-    pp = pprint.PrettyPrinter(indent=4)
-    for key in dictionary:
-        pp.pprint(dictionary)
+    # pp = pprint.PrettyPrinter(indent=4)
+    # for key in dictionary:
+    #     pp.pprint(dictionary)
     
     # create the ansible facts.d directory
     createDirectoryPath('/etc/ansible/facts.d')
@@ -126,7 +125,7 @@ if __name__ == '__main__':
     with open('/etc/ansible/facts.d/custom.fact', 'w') as write_file:
         json.dump(dictionary, write_file, indent=2)
 
-    sys.exit("Exiting")
+    #sys.exit("Exiting")
     
     # create an ansible roles directory for each role
     roles = list(("apt_upgrade_node", "software_images", "categories", "kubernetes", "nodes", "packages", "csps", "users", "wlms", "autoscaler", "jupyter", "apps"))
@@ -138,7 +137,7 @@ if __name__ == '__main__':
     os.system('pip install ansible==' + dictionary["ansible_version"])
     
     # install the brightcomputing.bcm92 Ansible collection
-    os.system("ansible-galaxy collection install brightcomputing.bcm92")
+    os.system("ansible-galaxy collection install brightcomputing.bcm100")
    
     # copy the CMSH aliases, bookmarks and scriptlets to their proper locations
     createDirectoryPath('/root/.cm/cmsh')
@@ -403,22 +402,22 @@ if __name__ == '__main__':
         # # write the playbook that installs Jupyter and opens port 8000 in the director security group
         # os.system('ansible-playbook -ilocalhost, install-jupyter-pb.yaml')
         
-    # if "users" in dictionary:
+    if "users" in dictionary:
     
-        # index=0
-        # shutil.copyfile("bright-ansible-vars", install_dir + "/roles/users/vars/main.yaml")
-        # password=generatePassword(20)
+        index=0
+        shutil.copyfile("bright-ansible-vars", install_dir + "/roles/users/vars/main.yaml")
+        password=generatePassword(20)
         
-        # os.system('ansible-playbook -ilocalhost, --extra-vars "password={password}" add-user-password-pb.yaml'.format(password=password))
+        os.system('ansible-playbook -ilocalhost, --extra-vars "password={password}" add-user-password-pb.yaml'.format(password=password))
         
-        # for user in dictionary["users"]:
+        for user in dictionary["users"]:
             
-            # index+=1
+            index+=1
            
-            # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} username={username} password={password}" add-user-pb.yaml'.format(index=index, username=user, password=password))
+            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} username={username} password={password}" add-user-pb.yaml'.format(index=index, username=user, password=password))
             
-        # concatenateFiles(dictionary["tmp_dir"], 'roles/users/tasks/main.yaml')
-        # cleanTmpDir(dictionary["tmp_dir"])
+        concatenateFiles(dictionary["tmp_dir"], 'roles/users/tasks/main.yaml')
+        cleanTmpDir(dictionary["tmp_dir"])
         
     # if "apps" in dictionary:
     
