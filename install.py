@@ -135,7 +135,7 @@ if __name__ == '__main__':
     
     # install ansible base
     os.system('pip install ansible==' + dictionary["ansible_version"])
-    os.system('pip install ansible==' + dictionary["ansible_core_version"])
+    os.system('pip install ansible-core==' + dictionary["ansible_core_version"])
     
     # install the brightcomputing.bcm92 Ansible collection
     os.system("ansible-galaxy collection install brightcomputing.bcm100")
