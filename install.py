@@ -180,7 +180,7 @@ if __name__ == '__main__':
             for module in image["modules"]:
             
                 print(module)
-                cmsh = 'module load cmsh -c "softwareimage use ' + image["clone_from"] + '; kernelmodules; append ' + module["name"]'
+                cmsh = 'module load cmsh -c "softwareimage use ' + image["clone_from"] + '; kernelmodules; append ' + module["name"]
                 print(cmsh)
                 #result = subprocess.run([module load cmsh -c "softwareimage; use image["clone_from"]; kernelmodules; append module["name"]], stdout=subprocess.PIPE).stdout.decode('utf-8')
                 
