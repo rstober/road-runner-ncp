@@ -137,7 +137,7 @@ if __name__ == '__main__':
     os.system('pip install ansible==' + dictionary["ansible_version"])
     
     # install the brightcomputing.bcm92 Ansible collection
-    os.system("ansible-galaxy collection install brightcomputing.bcm100")
+    os.system("ansible-galaxy collection install brightcomputing.bcm")
    
     # copy the CMSH aliases, bookmarks and scriptlets to their proper locations
     createDirectoryPath('/root/.cm/cmsh')
