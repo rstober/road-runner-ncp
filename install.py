@@ -137,7 +137,7 @@ if __name__ == '__main__':
     os.system('pip install ansible==' + dictionary["ansible_version"])
     os.system('pip install ansible-core==' + dictionary["ansible_core_version"])
     
-    # install the brightcomputing.bcm92 Ansible collection
+    # install the brightcomputing.bcm100 Ansible collection
     os.system("ansible-galaxy collection install brightcomputing.bcm100")
    
     # copy the CMSH aliases, bookmarks and scriptlets to their proper locations
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     shutil.copyfile('cu.cmsh', '/root/.cm/cmsh/cu.cmsh')
     shutil.copyfile('si.cmsh', '/root/.cm/cmsh/si.cmsh')
     shutil.copyfile('dp.cmsh', '/root/.cm/cmsh/dp.cmsh')
-    shutil.copyfile('hosts', '/etc/ansible/hosts')
+    #shutil.copyfile('hosts', '/etc/ansible/hosts')
     shutil.copyfile('ansible.cfg', '/root/.ansible.cfg')
     
     printBanner('Preparing playbooks')
