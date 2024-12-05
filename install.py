@@ -96,24 +96,18 @@ if __name__ == '__main__':
     os.chdir(install_dir)
     
     # install git
-    os.system("dnf install -y git")
-    #os.system("apt update")
-    #os.system("apt install -y git")
+    #os.system("dnf install -y git")
+    os.system("apt update")
+    os.system("apt install -y git")
     
     # install road-runner distribution
-    os.system("git clone https://github.com/rstober/road-runner-dev.git %s" % install_dir)
-    
-    # download the AWS CLI
-    # os.system("curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"")
-    # shutil.unpack_archive('awscliv2.zip', install_dir, 'zip')
-    # os.chmod("aws/install", stat.S_IEXEC)
-    # os.chmod("aws/dist/aws", stat.S_IEXEC)
+    os.system("git clone git@github.com:rstober/road-runner-ncp.git %s" % install_dir)
     
     # create the tmp directory
     createDirectoryPath(tmp_dir)
     
     # load the python3 module
-    exec(open('/cm/local/apps/environment-modules/4.5.3/Modules/default/init/python.py').read())
+    exec(open('/cm/local/apps/environment-modules/current/Modules/default/init/python.py').read())
     os.environ['MODULEPATH'] = '/cm/local/modulefiles:/cm/shared/modulefiles'
     module('load','python3')
     module('load','cmsh')
@@ -124,8 +118,6 @@ if __name__ == '__main__':
     pp = pprint.PrettyPrinter(indent=4)
     for key in dictionary:
         pp.pprint(dictionary)
-        
-    #sys.exit("Exiting")
     
     # create the ansible facts.d directory
     createDirectoryPath('/etc/ansible/facts.d')
@@ -133,6 +125,8 @@ if __name__ == '__main__':
     # write the ansible custom.fact directory 
     with open('/etc/ansible/facts.d/custom.fact', 'w') as write_file:
         json.dump(dictionary, write_file, indent=2)
+
+    sys.exit("Exiting")
     
     # create an ansible roles directory for each role
     roles = list(("apt_upgrade_node", "software_images", "categories", "kubernetes", "nodes", "packages", "csps", "users", "wlms", "autoscaler", "jupyter", "apps"))
