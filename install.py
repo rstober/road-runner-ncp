@@ -162,20 +162,20 @@ if __name__ == '__main__':
     
         for image in dictionary["software_images"]:
 
-            initrd_file = '/cm/images/' + image["name"] + '/boot/initrd-' + image["kernel_release"]
+            initrd_file = '/cm/images/' + image["name"] + '/boot/initrd.img'
             index+=1
             
-            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} clone_from={clone_from} image_path={image_path} kernel_release={kernel_release}" create-software-image-pb.yaml'.format(index=index, image_name=image["name"], clone_from=image["clone_from"], image_path=image["path"], kernel_release=image["kernel_release"]))
+            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} clone_from={clone_from} image_path={image_path}" create-software-image-pb.yaml'.format(index=index, image_name=image["name"], clone_from=image["clone_from"], image_path=image["path"]))
             
             # skip adding kernel modules if there are none to add
-            if image["modules"] is None:
-                continue
+            # if image["modules"] is None:
+            #     continue
             
-            for module in image["modules"]:
+            # for module in image["modules"]:
             
-                print(module)
-                cmsh = 'module load cmsh -c "softwareimage use ' + image["clone_from"] + '; kernelmodules; append ' + module["name"]
-                print(cmsh)
+            #     print(module)
+            #     cmsh = 'module load cmsh -c "softwareimage use ' + image["clone_from"] + '; kernelmodules; append ' + module["name"]
+            #     print(cmsh)
                 #result = subprocess.run([module load cmsh -c "softwareimage; use image["clone_from"]; kernelmodules; append module["name"]], stdout=subprocess.PIPE).stdout.decode('utf-8')
                 
                 
@@ -184,17 +184,17 @@ if __name__ == '__main__':
                 # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} image_name={image_name} module_name={module_name}" configure-software-image-pb.yaml'.format(index=index, image_name=image["name"], module_name=module))
                 
         index+=1
-        os.system('ansible-playbook -ilocalhost, --extra-vars "index={index}" grabimage-pb.yaml'.format(index=index))
+        # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index}" grabimage-pb.yaml'.format(index=index))
             
         concatenateFiles(dictionary["tmp_dir"], 'roles/software_images/tasks/main.yaml')
         cleanTmpDir(dictionary["tmp_dir"])
         
-        index=1
+        # index=1
         
-        os.system('ansible-playbook -ilocalhost, --extra-vars "index={index}" update-software-image-pb.yaml'.format(index=index))
+        # os.system('ansible-playbook -ilocalhost, --extra-vars "index={index}" update-software-image-pb.yaml'.format(index=index))
         
-        concatenateFiles(dictionary["tmp_dir"], 'roles/apt_upgrade_node/tasks/main.yaml')
-        cleanTmpDir(dictionary["tmp_dir"])
+        # concatenateFiles(dictionary["tmp_dir"], 'roles/apt_upgrade_node/tasks/main.yaml')
+        # cleanTmpDir(dictionary["tmp_dir"])
         
     if "categories" in dictionary:
     
