@@ -1,18 +1,20 @@
         
 - name: clone node {{ item['clone_from'] }} -> {{ item['hostname'] }}
-  brightcomputing.bcm92.physical_node:
+  brightcomputing.bcm100.physical_node:
     hostname: {{ item['hostname'] }}
     cloneFrom: {{ item['clone_from'] }}
     category: {{ item['category'] }}
-    
-# {% for nic in item['nics'] %}
 
-# - name: Configuring NIC {{ nic['device'] }} of node {{ item['hostname'] }}
-#   brightcomputing.bcm92.physical_node:
-#     hostname: {{ item['hostname'] }}
-#     interfaces_NetworkPhysicalInterface:
-#     - name: {{ nic['device'] }}
-#       ip: {{ nic['ip'] }}
-#       network: {{ nic['network'] }}
+{# 
+ {% for nic in item['nics'] %}
 
-# {% endfor %}
+- name: Configuring NIC {{ nic['device'] }} of node {{ item['hostname'] }}
+  brightcomputing.bcm100.physical_node:
+    hostname: {{ item['hostname'] }}
+    interfaces_NetworkPhysicalInterface:
+    - name: {{ nic['device'] }}
+      ip: {{ nic['ip'] }}
+      network: {{ nic['network'] }}
+
+{% endfor %}
+#}
