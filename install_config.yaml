@@ -22,17 +22,21 @@ categories:
     software_image: cloned-image
     
 nodes:
-  - hostname: node001
+  - hostname: node005
     category: cloned
+    clone_from: node001
     power_control: custom
-  - hostname: node002
+  - hostname: node006
     category: cloned
+    clone_from: node001
     power_control: custom
-  - hostname: node003
+  - hostname: node007
     category: cloned
+    clone_from: node001
     power_control: custom
-  - hostname: node004
+  - hostname: node008
     category: cloned
+    clone_from: node001
     power_control: custom
 
 packages:
