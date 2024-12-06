@@ -223,7 +223,7 @@ if __name__ == '__main__':
             
             # clone node01 to create the nodes listed in the install_config.yaml file
             
-            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} node_name={node_name} clone_from={clone_from} node_category={node_category}" clone-nodes.yml'.format(index=index, node_name=node["hostname"], clone_from=node["clone_from"], node_category=node["category"]))
+            os.system('ansible-playbook -ilocalhost, --extra-vars "index={index} node_name={node_name} clone_from={clone_from} node_category={node_category}" clone-nodes.yaml'.format(index=index, node_name=node["hostname"], clone_from=node["clone_from"], node_category=node["category"]))
             
             for nic in node["nics"]:
             
